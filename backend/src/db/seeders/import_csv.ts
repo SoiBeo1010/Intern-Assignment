@@ -10,7 +10,7 @@ const csvPath = process.env.CSV_PATH
 const BATCH_SIZE = parseInt(process.env.SEED_BATCH_SIZE || '1000', 10);
 
 type StudentRow = [string, string | null];
-type ScoreRow = [string, string, number];
+type ScoreRow = [string, ...(number | null)[]];
 
 interface ImportCounters {
   lines: number;
@@ -118,14 +118,18 @@ async function flushScores(rows: ScoreRow[]): Promise<void> {
     return;
   }
 
-  const placeholders = rows.map(() => '(?, ?, ?)').join(', ');
+  const subjectColumns = subjectCatalog.csvColumns();
+  const columns = ['registration_number', ...subjectColumns];
+  const rowPlaceholders = `(${columns.map(() => '?').join(', ')})`;
+  const placeholders = rows.map(() => rowPlaceholders).join(', ');
+  const updates = subjectColumns.map(column => `${column} = VALUES(${column})`).join(', ');
   const parameters = rows.flat();
 
   await AppDataSource.query(
     `
-      INSERT INTO scores (registration_number, subject_code, score)
+      INSERT INTO scores (${columns.join(', ')})
       VALUES ${placeholders}
-      ON DUPLICATE KEY UPDATE score = VALUES(score)
+      ON DUPLICATE KEY UPDATE ${updates}
     `,
     parameters,
   );
@@ -191,21 +195,22 @@ async function importCsv(): Promise<ImportCounters> {
       students.push([registrationNumber, foreignLanguageCode]);
       counters.students += 1;
 
+      const scoreRow: ScoreRow = [registrationNumber];
       for (const subject of subjectColumns) {
         const score = parseScore(columns[subject.index] || '');
-        if (score === null) {
-          continue;
-        }
+        scoreRow.push(score);
 
-        scores.push([registrationNumber, subject.subjectCode, score]);
-        counters.scores += 1;
+        if (score !== null) {
+          counters.scores += 1;
+        }
       }
+      scores.push(scoreRow);
 
       if (students.length >= BATCH_SIZE) {
         await flushStudents(students);
       }
 
-      if (scores.length >= BATCH_SIZE * subjectColumns.length) {
+      if (scores.length >= BATCH_SIZE) {
         await flushStudents(students);
         await flushScores(scores);
       }

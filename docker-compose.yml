@@ -11,10 +11,15 @@ services:
       - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-psecret"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   backend:
     build: ./backend
-    command: npm run start
+    command: npm run start:docker
     ports:
       - "4000:4000"
     environment:
@@ -26,7 +31,8 @@ services:
     volumes:
       - ./dataset:/dataset:ro
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build: ./frontend

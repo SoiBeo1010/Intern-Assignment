@@ -1,5 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
-import { Score } from './Score';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity({ name: 'subjects' })
 export class Subject {
@@ -8,7 +7,4 @@ export class Subject {
 
   @Column({ type: 'varchar', length: 100 })
   name!: string;
-
-  @OneToMany(() => Score, score => score.subject)
-  scores!: Score[];
 }

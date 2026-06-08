@@ -59,18 +59,24 @@ Backend:  http://localhost:4000
 MySQL:    localhost:3307
 ```
 
-The frontend service proxies `/api` requests to the backend service inside Docker.
+The frontend service proxies `/api` requests to the backend service inside Docker. The backend container runs pending migrations before starting the API.
 
 ### Import The Dataset
 
-After the database is running, execute the migration and seeder:
+After the database is running, execute the seeder:
 
 ```bash
-docker compose exec backend npm run migration:run
 docker compose exec backend npm run seed:csv
 ```
 
 The seeder reads `/dataset/diem_thi_thpt_2024.csv` inside Docker. The dataset folder is mounted read-only into the backend container.
+
+If your existing MySQL volume was created before the compact `scores` migration, rebuild and restart the backend so it applies pending migrations before serving requests:
+
+```bash
+docker compose up --build backend
+docker compose exec backend npm run seed:csv
+```
 
 ## Run Locally
 

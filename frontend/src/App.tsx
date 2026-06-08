@@ -48,11 +48,29 @@ const scoreBands = [
 
 async function fetchJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`);
-  const data = (await response.json()) as T | ApiError;
+  const text = await response.text();
+  const contentType = response.headers.get('content-type') || '';
+  let data: T | ApiError | null = null;
+
+  if (text.trim()) {
+    if (!contentType.includes('application/json')) {
+      throw new Error(response.ok ? 'API returned a non-JSON response.' : `Request failed with status ${response.status}.`);
+    }
+
+    try {
+      data = JSON.parse(text) as T | ApiError;
+    } catch {
+      throw new Error('API returned an invalid JSON response.');
+    }
+  }
 
   if (!response.ok) {
     const message = typeof data === 'object' && data && 'message' in data ? data.message : 'Request failed.';
     throw new Error(message);
+  }
+
+  if (data === null) {
+    throw new Error('API returned an empty response.');
   }
 
   return data as T;

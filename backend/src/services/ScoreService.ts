@@ -33,16 +33,19 @@ export interface GroupAStudentResult {
 interface RawStudentScoreRow {
   registrationNumber: string;
   foreignLanguageCode: string | null;
-  subjectCode: string;
-  score: string;
+  toan: string | null;
+  nguVan: string | null;
+  ngoaiNgu: string | null;
+  vatLi: string | null;
+  hoaHoc: string | null;
+  sinhHoc: string | null;
+  lichSu: string | null;
+  diaLi: string | null;
+  gdcd: string | null;
 }
 
 interface RawReportRow {
-  subjectCode: string;
-  greaterThanOrEqual8: string;
-  from6ToBelow8: string;
-  from4ToBelow6: string;
-  below4: string;
+  [key: string]: string | undefined;
 }
 
 interface RawGroupARow {
@@ -57,26 +60,32 @@ export class ScoreService {
   constructor(private readonly dataSource: DataSource) {}
 
   async findByRegistrationNumber(registrationNumber: string): Promise<StudentScoreResult | null> {
-    const rows = await this.dataSource
+    const row = await this.dataSource
       .getRepository(Score)
       .createQueryBuilder('score')
       .innerJoin(Student, 'student', 'student.registrationNumber = score.registrationNumber')
       .select('student.registrationNumber', 'registrationNumber')
       .addSelect('student.foreignLanguageCode', 'foreignLanguageCode')
-      .addSelect('score.subjectCode', 'subjectCode')
-      .addSelect('score.score', 'score')
+      .addSelect('score.toan', 'toan')
+      .addSelect('score.nguVan', 'nguVan')
+      .addSelect('score.ngoaiNgu', 'ngoaiNgu')
+      .addSelect('score.vatLi', 'vatLi')
+      .addSelect('score.hoaHoc', 'hoaHoc')
+      .addSelect('score.sinhHoc', 'sinhHoc')
+      .addSelect('score.lichSu', 'lichSu')
+      .addSelect('score.diaLi', 'diaLi')
+      .addSelect('score.gdcd', 'gdcd')
       .where('student.registrationNumber = :registrationNumber', { registrationNumber })
-      .orderBy('score.subjectCode', 'ASC')
-      .getRawMany<RawStudentScoreRow>();
+      .getRawOne<RawStudentScoreRow>();
 
-    if (rows.length === 0) {
+    if (!row) {
       return null;
     }
 
     return {
-      registrationNumber: rows[0].registrationNumber,
-      foreignLanguageCode: rows[0].foreignLanguageCode,
-      scores: rows.map(row => this.toSubjectScore(row.subjectCode, row.score)),
+      registrationNumber: row.registrationNumber,
+      foreignLanguageCode: row.foreignLanguageCode,
+      scores: this.toSubjectScores(row),
     };
   }
 
@@ -84,61 +93,44 @@ export class ScoreService {
     const rows = await this.dataSource
       .getRepository(Score)
       .createQueryBuilder('score')
-      .select('score.subjectCode', 'subjectCode')
-      .addSelect('SUM(CASE WHEN score.score >= 8 THEN 1 ELSE 0 END)', 'greaterThanOrEqual8')
-      .addSelect('SUM(CASE WHEN score.score < 8 AND score.score >= 6 THEN 1 ELSE 0 END)', 'from6ToBelow8')
-      .addSelect('SUM(CASE WHEN score.score < 6 AND score.score >= 4 THEN 1 ELSE 0 END)', 'from4ToBelow6')
-      .addSelect('SUM(CASE WHEN score.score < 4 THEN 1 ELSE 0 END)', 'below4')
-      .groupBy('score.subjectCode')
+      .select(
+        subjectCatalog.all().flatMap(subject => [
+          `SUM(CASE WHEN score.${subject.csvColumn} >= 8 THEN 1 ELSE 0 END) AS ${subject.code}_greaterThanOrEqual8`,
+          `SUM(CASE WHEN score.${subject.csvColumn} < 8 AND score.${subject.csvColumn} >= 6 THEN 1 ELSE 0 END) AS ${subject.code}_from6ToBelow8`,
+          `SUM(CASE WHEN score.${subject.csvColumn} < 6 AND score.${subject.csvColumn} >= 4 THEN 1 ELSE 0 END) AS ${subject.code}_from4ToBelow6`,
+          `SUM(CASE WHEN score.${subject.csvColumn} < 4 THEN 1 ELSE 0 END) AS ${subject.code}_below4`,
+        ]),
+      )
       .getRawMany<RawReportRow>();
 
-    const reportBySubject = new Map(rows.map(row => [row.subjectCode, row]));
+    const row = rows[0];
 
     return subjectCatalog.all().map(subject => {
-      const row = reportBySubject.get(subject.code);
-
       return {
         subjectCode: subject.code,
         subjectName: subject.name,
-        greaterThanOrEqual8: this.toCount(row?.greaterThanOrEqual8),
-        from6ToBelow8: this.toCount(row?.from6ToBelow8),
-        from4ToBelow6: this.toCount(row?.from4ToBelow6),
-        below4: this.toCount(row?.below4),
+        greaterThanOrEqual8: this.toCount(row?.[`${subject.code}_greaterThanOrEqual8`]),
+        from6ToBelow8: this.toCount(row?.[`${subject.code}_from6ToBelow8`]),
+        from4ToBelow6: this.toCount(row?.[`${subject.code}_from4ToBelow6`]),
+        below4: this.toCount(row?.[`${subject.code}_below4`]),
       };
     });
   }
 
   async getTopGroupAStudents(limit = 10): Promise<GroupAStudentResult[]> {
     const [math, physics, chemistry] = subjectCatalog.groupA();
-    const groupACodes = [math.code, physics.code, chemistry.code];
 
     const rows = await this.dataSource
       .getRepository(Score)
       .createQueryBuilder('score')
       .select('score.registrationNumber', 'registrationNumber')
-      .addSelect(
-        'SUM(CASE WHEN score.subjectCode = :mathCode THEN score.score ELSE 0 END)',
-        'mathScore',
-      )
-      .addSelect(
-        'SUM(CASE WHEN score.subjectCode = :physicsCode THEN score.score ELSE 0 END)',
-        'physicsScore',
-      )
-      .addSelect(
-        'SUM(CASE WHEN score.subjectCode = :chemistryCode THEN score.score ELSE 0 END)',
-        'chemistryScore',
-      )
-      .addSelect('SUM(score.score)', 'totalScore')
-      .where('score.subjectCode IN (:...groupACodes)', {
-        groupACodes,
-        mathCode: math.code,
-        physicsCode: physics.code,
-        chemistryCode: chemistry.code,
-      })
-      .groupBy('score.registrationNumber')
-      .having('COUNT(DISTINCT score.subjectCode) = :requiredSubjectCount', {
-        requiredSubjectCount: groupACodes.length,
-      })
+      .addSelect('score.toan', 'mathScore')
+      .addSelect('score.vatLi', 'physicsScore')
+      .addSelect('score.hoaHoc', 'chemistryScore')
+      .addSelect('(score.toan + score.vatLi + score.hoaHoc)', 'totalScore')
+      .where('score.toan IS NOT NULL')
+      .andWhere('score.vatLi IS NOT NULL')
+      .andWhere('score.hoaHoc IS NOT NULL')
       .orderBy('totalScore', 'DESC')
       .addOrderBy('score.registrationNumber', 'ASC')
       .limit(limit)
@@ -155,15 +147,25 @@ export class ScoreService {
     }));
   }
 
+  private toSubjectScores(row: RawStudentScoreRow): SubjectScoreResult[] {
+    return subjectCatalog
+      .all()
+      .map(subject => {
+        const rawScore = row[this.toScoreProperty(subject.code)];
+        return rawScore === null ? null : this.toSubjectScore(subject.code, rawScore, subject);
+      })
+      .filter((score): score is SubjectScoreResult => score !== null);
+  }
+
   private toSubjectScore(
     subjectCode: string,
-    rawScore: string,
+    rawScore: string | null,
     subject: SubjectDefinition = subjectCatalog.requireByCode(subjectCode),
   ): SubjectScoreResult {
     return {
       subjectCode,
       subjectName: subject.name,
-      score: this.toNumber(rawScore),
+      score: this.toNumber(rawScore || '0'),
     };
   }
 
@@ -173,5 +175,26 @@ export class ScoreService {
 
   private toNumber(value: string): number {
     return Number(Number(value).toFixed(2));
+  }
+
+  private toScoreProperty(subjectCode: string): keyof RawStudentScoreRow {
+    const propertyBySubjectCode: Record<string, keyof RawStudentScoreRow> = {
+      toan: 'toan',
+      ngu_van: 'nguVan',
+      ngoai_ngu: 'ngoaiNgu',
+      vat_li: 'vatLi',
+      hoa_hoc: 'hoaHoc',
+      sinh_hoc: 'sinhHoc',
+      lich_su: 'lichSu',
+      dia_li: 'diaLi',
+      gdcd: 'gdcd',
+    };
+
+    const property = propertyBySubjectCode[subjectCode];
+    if (!property) {
+      throw new Error(`Unknown subject code: ${subjectCode}`);
+    }
+
+    return property;
   }
 }
