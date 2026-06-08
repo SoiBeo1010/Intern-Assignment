@@ -1,15 +1,16 @@
-version: '3.8'
 services:
   db:
-    image: postgres:15
+    image: mysql:8.4
+    platform: linux/amd64
     environment:
-      POSTGRES_USER: gscores
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: gscores_db
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: gscores_db
+      MYSQL_USER: gscores
+      MYSQL_PASSWORD: secret
     ports:
-      - "5432:5432"
+      - "3307:3306"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/mysql
 
   backend:
     build: ./backend
@@ -17,7 +18,13 @@ services:
     ports:
       - "4000:4000"
     environment:
-      DATABASE_URL: postgres://gscores:secret@db:5432/gscores_db
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USER: gscores
+      DB_PASSWORD: secret
+      DB_NAME: gscores_db
+    volumes:
+      - ./dataset:/dataset:ro
     depends_on:
       - db
 

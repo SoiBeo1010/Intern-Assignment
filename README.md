@@ -55,6 +55,36 @@ After completing the assignment, please push the source code to remote repositor
 
 Don't forget to add `README.md` which includes guide to run your project locally and demo link.
 
+# Local database import
+
+The CSV-to-MySQL conversion is coded in the backend with TypeORM:
+- Migration: `backend/src/db/migrations/1710000000000-CreateExamScoreTables.ts`
+- Seeder: `backend/src/db/seeders/import_csv.ts`
+- Subject mapping: `backend/src/domain/subjects/SubjectCatalog.ts`
+
+Run MySQL with Docker:
+
+```bash
+docker compose up -d db
+```
+
+This exposes the project MySQL database on host port `3307`, so it does not conflict with another local MySQL on `3306`.
+
+Then import the raw score file:
+
+```bash
+cd backend
+npm install
+npm run migration:run
+npm run seed:csv
+```
+
+The seeder reads `dataset/diem_thi_thpt_2024.csv` by default. To import another file:
+
+```bash
+CSV_PATH=../dataset/diem_thi_thpt_2024.csv npm run seed:csv
+```
+
 
 **GOOD LUCK!!!**
 
