@@ -4,6 +4,7 @@ Database migrations live here. The assignment's coded CSV conversion is implemen
 
 Current structure:
 - `1710000000000-CreateExamScoreTables.ts` creates `students`, `subjects`, and `scores`.
+- `1710000000001-AddGroupAQueryIndex.ts` adds an index for the Group A top-students query.
 - `../seeders/import_csv.ts` streams `dataset/diem_thi_thpt_2024.csv` into those tables.
 
 Start the project MySQL database from the repository root:

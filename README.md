@@ -85,6 +85,32 @@ The seeder reads `dataset/diem_thi_thpt_2024.csv` by default. To import another 
 CSV_PATH=../dataset/diem_thi_thpt_2024.csv npm run seed:csv
 ```
 
+# Backend API
+
+Start the backend after the database is running:
+
+```bash
+cd backend
+npm run start
+```
+
+Available endpoints:
+
+```text
+GET /api/health
+GET /api/scores/:registrationNumber
+GET /api/reports/score-levels
+GET /api/students/top-group-a?limit=10
+```
+
+Examples:
+
+```bash
+curl http://localhost:4000/api/scores/01000001
+curl http://localhost:4000/api/reports/score-levels
+curl "http://localhost:4000/api/students/top-group-a?limit=10"
+```
+
 
 **GOOD LUCK!!!**
 

@@ -7,8 +7,11 @@ export interface SubjectDefinition {
 export class SubjectCatalog {
   private readonly subjects: SubjectDefinition[];
 
+  private readonly byCode: Map<string, SubjectDefinition>;
+
   constructor(subjects: SubjectDefinition[]) {
     this.subjects = subjects;
+    this.byCode = new Map(subjects.map(subject => [subject.code, subject]));
   }
 
   all(): SubjectDefinition[] {
@@ -17,6 +20,23 @@ export class SubjectCatalog {
 
   csvColumns(): string[] {
     return this.subjects.map(subject => subject.csvColumn);
+  }
+
+  findByCode(code: string): SubjectDefinition | undefined {
+    return this.byCode.get(code);
+  }
+
+  requireByCode(code: string): SubjectDefinition {
+    const subject = this.findByCode(code);
+    if (!subject) {
+      throw new Error(`Unknown subject code: ${code}`);
+    }
+
+    return subject;
+  }
+
+  groupA(): SubjectDefinition[] {
+    return ['toan', 'vat_li', 'hoa_hoc'].map(code => this.requireByCode(code));
   }
 }
 
