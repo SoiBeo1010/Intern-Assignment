@@ -200,4 +200,4 @@ Do not run `docker compose down -v` unless you intentionally want to delete the 
 
 ## License
 
-This project was built for the Golden Owl web developer intern assignment.
+This project was built for the Golden Owl Full-stack JS Intern assignment.
