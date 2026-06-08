@@ -31,6 +31,18 @@ You can use any front-end library/framework like React, Angular, Vue, ... or jus
 - Fonts (optional);
   - [https://fonts.google.com/specimen/Rubik?query=Rubik](https://fonts.google.com/specimen/Rubik?query=Rubik)
 - You can use some available interfaces such as: [AdminLTe](https://adminlte.io/), [TailAdmin](https://tailadmin.com/)...
+
+## Frontend run
+
+The `frontend/` folder now contains a React + Vite dashboard that connects to the backend API.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Vite proxies `/api` requests to `http://localhost:4000` during development.
   
 ### Backend: 
 Choose one of your applied back-end libraries/frameworks: Maybe Laravel(PHP), Ruby on Rails, NestJS (NodeJs), Django (Python), unlimited framework... or a structure that you come up with yourselt. 
