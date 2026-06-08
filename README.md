@@ -1,40 +1,96 @@
 # G-Scores
 
-This is the instruction for web developer intern assignment at [Golden Owl](https://goldenowl.asia). You will build a simple web.
+G-Scores is a full-stack web application for exploring Vietnam's 2024 THPT national exam scores. It imports the raw CSV dataset into MySQL, exposes a TypeScript backend API, and provides a React dashboard for candidate lookup, subject distribution reports, and Group A ranking.
 
-Web template example. Hope you will make it more beautiful !!!
+## Features
 
-![template example](./screenshots/mockup-ui.png) 
-# Requirements
-1. From the raw data file ([diem_thi_thpt_2024.csv](./dataset/diem_thi_thpt_2024.csv)) save it into the database with the appropriate structure
+- Import `dataset/diem_thi_thpt_2024.csv` into MySQL through coded TypeORM migrations and a seeder.
+- Search candidate scores by registration number.
+- Support 7-digit lookup input by normalizing it to the stored 8-digit registration number format.
+- Show score-level statistics by subject across four bands: `>= 8`, `6 - 7.99`, `4 - 5.99`, and `< 4`.
+- List the top 10 Group A students by Math, Physics, and Chemistry total score.
+- Run the database, backend, and frontend together with Docker Compose.
 
-2. Your application should have at least features in [Must have](#must-have), things in [Nice to have](#nice-to-have) is optional (but yeah, it's attractive if you have).
+## Tech Stack
 
-### Must have:
-- The conversion of raw data into the database must be coded and located in this source code. (**hint**: recommend use migration and seeder)
-- Write a feature to check score from registration number input
-- Write a feature report. There will be 4 levels including: >=8 points, 8 points > && >=6 points, 6 points > && >= 4 points, < 4 points
-    - Statistics of the number of students with scores in the above 4 levels by subjects. (Chart)
-- List top 10 students of group A including (math, physics, chemistry)
-### Nice to have:
+- Frontend: React, Vite, TypeScript, CSS
+- Backend: Node.js, Express, TypeScript
+- ORM: TypeORM
+- Database: MySQL
+- Tooling: Docker Compose
 
-- Responsive design (look good on all devices: desktops, tablets & mobile phones).
-- Setup project use Docker.
-- Deploy the application to go live.
+## Project Structure
 
-# Technical Requirements
+```text
+.
+├── backend/
+│   ├── src/db/migrations/       # TypeORM schema migrations
+│   ├── src/db/seeders/          # CSV import seeder
+│   ├── src/domain/subjects/     # Subject management domain logic
+│   ├── src/entities/            # TypeORM entities
+│   ├── src/routes/              # Express API routes
+│   └── src/services/            # Backend business logic
+├── dataset/
+│   └── diem_thi_thpt_2024.csv
+├── frontend/
+│   └── src/
+└── docker-compose.yml
+```
 
-### Frontend
-You can use any front-end library/framework like React, Angular, Vue, ... or just simple things with HTML + CSS + Javascript (JQuery).
-- For JS intern use React you need to have: 
-  * React Hooks
-- Fonts (optional);
-  - [https://fonts.google.com/specimen/Rubik?query=Rubik](https://fonts.google.com/specimen/Rubik?query=Rubik)
-- You can use some available interfaces such as: [AdminLTe](https://adminlte.io/), [TailAdmin](https://tailadmin.com/)...
+## Prerequisites
 
-## Frontend run
+- Node.js 20 or newer
+- npm
+- Docker Desktop, if running with Docker
 
-The `frontend/` folder now contains a React + Vite dashboard that connects to the backend API.
+## Run With Docker
+
+From the project root:
+
+```bash
+docker compose up --build
+```
+
+Services:
+
+```text
+Frontend: http://localhost:5173
+Backend:  http://localhost:4000
+MySQL:    localhost:3307
+```
+
+The frontend service proxies `/api` requests to the backend service inside Docker.
+
+### Import The Dataset
+
+After the database is running, execute the migration and seeder:
+
+```bash
+docker compose exec backend npm run migration:run
+docker compose exec backend npm run seed:csv
+```
+
+The seeder reads `/dataset/diem_thi_thpt_2024.csv` inside Docker. The dataset folder is mounted read-only into the backend container.
+
+## Run Locally
+
+Start only MySQL with Docker:
+
+```bash
+docker compose up -d db
+```
+
+Install backend dependencies and prepare the database:
+
+```bash
+cd backend
+npm install
+npm run migration:run
+npm run seed:csv
+npm run start
+```
+
+In another terminal, start the frontend:
 
 ```bash
 cd frontend
@@ -42,92 +98,106 @@ npm install
 npm run dev
 ```
 
-Vite proxies `/api` requests to `http://localhost:4000` during development.
-  
-### Backend: 
-Choose one of your applied back-end libraries/frameworks: Maybe Laravel(PHP), Ruby on Rails, NestJS (NodeJs), Django (Python), unlimited framework... or a structure that you come up with yourselt. 
-- **Mandatory** use of **OOP programming** for managing subjects.
-- Need form validation and logic tightening.
-- For NodeJs, use TypeScript is a plus.
-- Use ORM for interacting with Database.
-- Database: You can use postgreSQL, Mysql, mongoDB... to manage or cache the data. 
+Open `http://localhost:5173`.
 
-### Deployment
-Some providers allow free deployment for the trial version  (note: Maybe some suppliers will update their policies and prices)
+## Database Notes
 
-- Heroku - https://heroku.com - Deploying Front & Backend
-- Vercel (Zeit) - https://vercel.com - Deploying Front & Backend apps at free of cost
-- Fly - https://fly.io - Deploying Front & Backend apps at free of cost
-- Deta - https://deta.sh - Deploying Node.js and Python apps and APIs. They support most web frameworks like Express, Koa, Flask, and FastAPI. They also provide a very fast and powerful NoSQL database for free.
-- Heliohost - https://heliohost.org - PHP, Ruby on rails, perl, django, java(jsp)
-- `...`
-# Submission
+The backend uses these default local database settings:
 
-After completing the assignment, please push the source code to remote repository (github/gitlab), then send us the link to your repository.
-
-Don't forget to add `README.md` which includes guide to run your project locally and demo link.
-
-# Local database import
-
-The CSV-to-MySQL conversion is coded in the backend with TypeORM:
-- Migration: `backend/src/db/migrations/1710000000000-CreateExamScoreTables.ts`
-- Seeder: `backend/src/db/seeders/import_csv.ts`
-- Subject mapping: `backend/src/domain/subjects/SubjectCatalog.ts`
-
-Run MySQL with Docker:
-
-```bash
-docker compose up -d db
+```text
+DB_HOST=127.0.0.1
+DB_PORT=3307
+DB_USER=gscores
+DB_PASSWORD=secret
+DB_NAME=gscores_db
 ```
 
-This exposes the project MySQL database on host port `3307`, so it does not conflict with another local MySQL on `3306`.
+Inside Docker Compose, the backend connects to the database service with:
 
-Then import the raw score file:
-
-```bash
-cd backend
-npm install
-npm run migration:run
-npm run seed:csv
+```text
+DB_HOST=db
+DB_PORT=3306
 ```
 
-The seeder reads `dataset/diem_thi_thpt_2024.csv` by default. To import another file:
+To import a different CSV file locally:
 
 ```bash
 CSV_PATH=../dataset/diem_thi_thpt_2024.csv npm run seed:csv
 ```
 
-# Backend API
+On Windows PowerShell:
 
-Start the backend after the database is running:
-
-```bash
-cd backend
-npm run start
+```powershell
+$env:CSV_PATH="../dataset/diem_thi_thpt_2024.csv"
+npm run seed:csv
 ```
 
-Available endpoints:
+## Backend API
+
+Base URL:
 
 ```text
-GET /api/health
-GET /api/scores/:registrationNumber
-GET /api/reports/score-levels
-GET /api/students/top-group-a?limit=10
+http://localhost:4000/api
+```
+
+Endpoints:
+
+```text
+GET /health
+GET /scores/:registrationNumber
+GET /reports/score-levels
+GET /students/top-group-a?limit=10
 ```
 
 Examples:
 
 ```bash
-curl http://localhost:4000/api/scores/01000001
+curl http://localhost:4000/api/health
+curl http://localhost:4000/api/scores/01000010
+curl http://localhost:4000/api/scores/1000010
 curl http://localhost:4000/api/reports/score-levels
 curl "http://localhost:4000/api/students/top-group-a?limit=10"
 ```
 
+## Useful Commands
 
-**GOOD LUCK!!!**
+Backend:
 
-![Your Code Work](./screenshots/meme.png)
+```bash
+cd backend
+npm run build
+npm run migration:run
+npm run migration:revert
+npm run seed:csv
+npm run db:setup
+```
 
-# Contributors
+Frontend:
 
-- Edric Cao (from GO)
+```bash
+cd frontend
+npm run build
+npm run dev
+npm run preview
+```
+
+Docker:
+
+```bash
+docker compose up --build
+docker compose up -d db
+docker compose down
+```
+
+Do not run `docker compose down -v` unless you intentionally want to delete the MySQL volume and imported data.
+
+## Implementation Highlights
+
+- Subject metadata and Group A subject management are centralized in `backend/src/domain/subjects/SubjectCatalog.ts`.
+- The raw CSV import is implemented in `backend/src/db/seeders/import_csv.ts`.
+- The database schema is managed through TypeORM migrations in `backend/src/db/migrations`.
+- Candidate lookup, score-level reports, and Group A ranking are implemented in `backend/src/services/ScoreService.ts`.
+
+## License
+
+This project was built for the Golden Owl web developer intern assignment.

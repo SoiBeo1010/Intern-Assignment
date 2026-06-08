@@ -171,10 +171,11 @@ function App() {
         <section className="hero-panel">
           <div>
             <p className="eyebrow">Golden Owl internship assignment</p>
-            <h2>Search scores with a sharper, more readable interface.</h2>
+            <h2>Intern assignment: G-Scores dashboard</h2>
             <p className="hero-copy">
-              Built on the existing exam-score API with React Hooks, a responsive dashboard layout, and visual
-              reporting that is easier to scan than the original template.
+              Demonstrates the internship deliverables: search scores by registration number, subject-level
+              distribution reports, and a top-10 Group A leaderboard — implemented with React Hooks and the
+              provided exam-score API.
             </p>
           </div>
 
@@ -267,9 +268,7 @@ function App() {
           </div>
 
           <div className="report-grid">
-            {report
-              .filter(row => row.subjectCode !== 'ngu_van')
-              .map(row => {
+            {report.map(row => {
               const total =
                 row.greaterThanOrEqual8 + row.from6ToBelow8 + row.from4ToBelow6 + row.below4 || 1;
 

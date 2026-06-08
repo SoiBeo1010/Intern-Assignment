@@ -28,5 +28,15 @@ services:
     depends_on:
       - db
 
+  frontend:
+    build: ./frontend
+    command: npm run dev -- --host 0.0.0.0
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_PROXY_TARGET: http://backend:4000
+    depends_on:
+      - backend
+
 volumes:
   db_data:

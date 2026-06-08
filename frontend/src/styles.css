@@ -178,7 +178,6 @@ input {
   font-size: clamp(2rem, 3vw, 3.2rem);
   line-height: 1.05;
   letter-spacing: -0.04em;
-  max-width: 12ch;
 }
 
 .hero-copy {
@@ -215,6 +214,16 @@ input {
   box-shadow: 0 16px 35px rgba(29, 78, 216, 0.25);
 }
 
+/* Ensure metric labels are readable on the colored card */
+.metric-card span {
+  color: #ffffff;
+  opacity: 0.95;
+}
+
+.metric-card strong {
+  color: #ffffff;
+}
+
 .metric-card span,
 .metric-card strong,
 .result-summary span,
@@ -231,7 +240,6 @@ input {
   margin: 0;
 }
 
-.metric-card span,
 .result-summary span,
 .section-heading span,
 .band-values span,
