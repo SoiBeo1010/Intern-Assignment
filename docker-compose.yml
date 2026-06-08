@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: gscores
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: gscores_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    command: npm run start
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: postgres://gscores:secret@db:5432/gscores_db
+    depends_on:
+      - db
+
+volumes:
+  db_data:
