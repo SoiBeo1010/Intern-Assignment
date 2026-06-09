@@ -59,7 +59,7 @@ Backend:  http://localhost:4000
 MySQL:    localhost:3307
 ```
 
-The frontend service proxies `/api` requests to the backend service inside Docker. The backend container runs pending migrations before starting the API.
+The frontend service proxies `/api` requests to the backend service inside Docker.
 
 ### Import The Dataset
 
@@ -71,10 +71,10 @@ docker compose exec backend npm run seed:csv
 
 The seeder reads `/dataset/diem_thi_thpt_2024.csv` inside Docker. The dataset folder is mounted read-only into the backend container.
 
-If your existing MySQL volume was created before the compact `scores` migration, rebuild and restart the backend so it applies pending migrations before serving requests:
+If you are starting from a fresh database, run the migration once before seeding or using the API:
 
 ```bash
-docker compose up --build backend
+docker compose exec backend npm run migration:run
 docker compose exec backend npm run seed:csv
 ```
 
@@ -106,6 +106,57 @@ npm run dev
 
 Open `http://localhost:5173`.
 
+## Deployment
+
+This project is deployed as three separate services:
+
+### Backend on Render
+
+- Root directory: `backend`
+- Build command: `npm run build`
+- Start command: `npm run start:prod`
+- Environment variables:
+  - `DB_HOST`
+  - `DB_PORT`
+  - `DB_USER`
+  - `DB_PASSWORD`
+  - `DB_NAME`
+  - `PORT`
+
+Recommended setup:
+
+1. Create a MySQL database on Railway.
+2. Copy the Railway connection details into the Render backend environment variables.
+3. Deploy the backend from the `backend/` folder.
+4. Run the migration and seeder once against the deployed Railway database:
+   ```bash
+   npm run migration:run
+   npm run seed:csv
+   ```
+
+The backend already enables CORS, so the Vercel frontend can call it directly.
+
+### Frontend on Vercel
+
+- Root directory: `frontend`
+- Framework preset: Vite
+- Build command: `npm run build`
+- Output directory: `dist`
+- Environment variable:
+  - `VITE_API_BASE_URL`
+
+Set `VITE_API_BASE_URL` to the Render backend URL before deploying, for example:
+
+```text
+https://your-backend.onrender.com
+```
+
+### Database on Railway
+
+- Create a Railway MySQL service.
+- Use the Railway host, port, user, password, and database name in the Render backend environment.
+- Keep the Railway volume persistent so the imported exam data remains available.
+
 ## Database Notes
 
 The backend uses these default local database settings:
@@ -124,6 +175,8 @@ Inside Docker Compose, the backend connects to the database service with:
 DB_HOST=db
 DB_PORT=3306
 ```
+
+For Render + Railway deployments, replace those values with the Railway MySQL credentials.
 
 To import a different CSV file locally:
 
@@ -145,6 +198,8 @@ Base URL:
 ```text
 http://localhost:4000/api
 ```
+
+For production, use the Render backend base URL instead of `localhost`.
 
 Endpoints:
 
@@ -172,6 +227,7 @@ Backend:
 ```bash
 cd backend
 npm run build
+npm run start:prod
 npm run migration:run
 npm run migration:revert
 npm run seed:csv
