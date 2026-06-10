@@ -108,54 +108,87 @@ Open `http://localhost:5173`.
 
 ## Deployment
 
-This project is deployed as three separate services:
+Deploy the application in this order: database first, backend second, frontend last.
 
-### Backend on Render
+### 1. Create the MySQL Database on Railway
+
+1. Create a new Railway project.
+2. Add a MySQL database service.
+3. Open the Railway database variables or connection details.
+4. Copy these values:
+   - `MYSQLHOST`
+   - `MYSQLPORT`
+   - `MYSQLUSER`
+   - `MYSQLPASSWORD`
+   - `MYSQLDATABASE`
+
+These values will be used both to seed the database from your local machine and to configure the deployed backend on Render.
+
+### 2. Import Data Into Railway From the Local Backend
+
+Before deploying the backend, run the migration and CSV seeder locally while pointing the backend to the Railway database.
+
+PowerShell example:
+
+```powershell
+cd backend
+npm install
+
+$env:DB_HOST="your-railway-mysql-host"
+$env:DB_PORT="your-railway-mysql-port"
+$env:DB_USER="your-railway-mysql-user"
+$env:DB_PASSWORD="your-railway-mysql-password"
+$env:DB_NAME="your-railway-mysql-database"
+
+npm run migration:run
+npm run seed:csv
+```
+
+The seeder imports `dataset/diem_thi_thpt_2024.csv` into the Railway MySQL database. Keep the Railway volume persistent so the imported exam data remains available after restarts.
+
+### 3. Deploy the Backend on Render
 
 - Root directory: `backend`
 - Build command: `npm run build`
 - Start command: `npm run start:prod`
-- Environment variables:
-  - `DB_HOST`
-  - `DB_PORT`
-  - `DB_USER`
-  - `DB_PASSWORD`
-  - `DB_NAME`
-  - `PORT`
 
-Recommended setup:
+Add these Render environment variables using the Railway values:
 
-1. Create a MySQL database on Railway.
-2. Copy the Railway connection details into the Render backend environment variables.
-3. Deploy the backend from the `backend/` folder.
-4. Run the migration and seeder once against the deployed Railway database:
-   ```bash
-   npm run migration:run
-   npm run seed:csv
-   ```
+```text
+DB_HOST=MYSQLHOST
+DB_PORT=MYSQLPORT
+DB_USER=MYSQLUSER
+DB_PASSWORD=MYSQLPASSWORD
+DB_NAME=MYSQLDATABASE
+PORT=4000
+```
 
-The backend already enables CORS, so the Vercel frontend can call it directly.
+After deployment, verify the backend:
 
-### Frontend on Vercel
+```text
+https://your-backend.onrender.com/api/health
+```
+
+The backend enables CORS, so the Vercel frontend can call it directly.
+
+### 4. Deploy the Frontend on Vercel
 
 - Root directory: `frontend`
 - Framework preset: Vite
 - Build command: `npm run build`
 - Output directory: `dist`
-- Environment variable:
-  - `VITE_API_BASE_URL`
 
-Set `VITE_API_BASE_URL` to the Render backend URL before deploying, for example:
+Set this Vercel environment variable to the Render backend URL:
 
 ```text
-https://your-backend.onrender.com
+VITE_API_BASE_URL=https://your-backend.onrender.com
 ```
 
-### Database on Railway
+Deploy the frontend after the backend URL is available. The frontend will call:
 
-- Create a Railway MySQL service.
-- Use the Railway host, port, user, password, and database name in the Render backend environment.
-- Keep the Railway volume persistent so the imported exam data remains available.
+```text
+https://your-backend.onrender.com/api
+```
 
 ## Database Notes
 
